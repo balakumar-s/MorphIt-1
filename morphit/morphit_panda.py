@@ -7,8 +7,8 @@ Processes all mesh files in a directory and saves results with panda_ prefix.
 import os
 import sys
 from pathlib import Path
-from config import get_config, update_config_from_dict
-from morphit import MorphIt
+from .config import get_config, update_config_from_dict
+from .morphit import MorphIt
 
 
 def batch_process_meshes():

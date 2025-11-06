@@ -8,11 +8,11 @@ import time
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from losses import MorphItLosses
-from density_control import DensityController
-from convergence_tracker import ConvergenceTracker
-from logger import SphereEvolutionLogger
-
+from .losses import MorphItLosses
+from .density_control import DensityController
+from .convergence_tracker import ConvergenceTracker
+from .logger import SphereEvolutionLogger
+from .print_helper import print_string
 
 class MorphItTrainer:
     """
@@ -59,7 +59,7 @@ class MorphItTrainer:
     def _reset_optimizer(self):
         """Reset optimizer after parameter changes."""
         self.optimizer = self._create_optimizer()
-        print("Optimizer reset after parameter changes")
+        print_string("Optimizer reset after parameter changes")
 
     def setup_logging(self):
         """Setup logging and tracking systems."""
@@ -68,11 +68,13 @@ class MorphItTrainer:
         self.convergence_tracker = ConvergenceTracker(model_name)
 
         # Setup evolution logger
-        self.evolution_logger = SphereEvolutionLogger("sphere_evolution")
-        self.model.evolution_logger = self.evolution_logger
+        if self.config.training.logging_enabled:
+            self.evolution_logger = SphereEvolutionLogger("sphere_evolution")
+            self.model.evolution_logger = self.evolution_logger
 
         # Log initial state
-        self.evolution_logger.log_spheres(self.model, 0, "initial")
+        if self.config.training.logging_enabled:
+            self.evolution_logger.log_spheres(self.model, 0, "initial")
 
     def setup_rendering(self):
         """Setup rendering if PyVista is available."""
@@ -87,7 +89,7 @@ class MorphItTrainer:
         Returns:
             Convergence tracker with training history
         """
-        print("\n=== Starting MorphIt Training ===")
+        print_string("\n=== Starting MorphIt Training ===")
 
         # Setup logging and rendering
         self.setup_logging()
@@ -133,17 +135,7 @@ class MorphItTrainer:
 
         return self.convergence_tracker
 
-    def _training_step(self, loss_weights: Dict[str, float]) -> Dict[str, Any]:
-        """
-        Perform a single training step.
-
-        Args:
-            loss_weights: Dictionary of loss weights
-
-        Returns:
-            Dictionary with loss information and gradients
-        """
-        iter_start_time = time.time()
+    def _training_step_ops(self, loss_weights: Dict[str, float]) -> Dict[str, Any]:
 
         # Zero gradients
         self.optimizer.zero_grad()
@@ -159,7 +151,7 @@ class MorphItTrainer:
                 weight = loss_weights[loss_name]
                 weighted_loss = weight * loss_value
                 total_loss += weighted_loss
-                weighted_losses[loss_name] = weighted_loss.item()
+                weighted_losses[loss_name] = weighted_loss#.item()
 
         # Backward pass
         total_loss.backward()
@@ -177,28 +169,44 @@ class MorphItTrainer:
 
         # Update parameters
         self.optimizer.step()
+        return {
+            "total_loss": total_loss,#.item(),
+            "weighted_losses": weighted_losses,
+            "raw_losses": {k: v for k, v in losses.items()},
+            "grad_info": grad_info,
+        }
 
+    def _training_step(self, loss_weights: Dict[str, float]) -> Dict[str, Any]:
+        """
+        Perform a single training step.
+
+        Args:
+            loss_weights: Dictionary of loss weights
+
+        Returns:
+            Dictionary with loss information and gradients
+        """
+        iter_start_time = time.time()
+
+        loss_info = self._training_step_ops(loss_weights)
         # Calculate timing
         iter_time = time.time() - iter_start_time
+        loss_info["iter_time"] = iter_time
+        return loss_info
 
-        return {
-            "total_loss": total_loss.item(),
-            "weighted_losses": weighted_losses,
-            "raw_losses": {k: v.item() for k, v in losses.items()},
-            "grad_info": grad_info,
-            "iter_time": iter_time,
-        }
+
+
 
     def _get_gradient_info(self) -> Dict[str, float]:
         """Get gradient magnitude information."""
         with torch.no_grad():
             position_grad_mag = (
-                self.model._centers.grad.norm(dim=1).mean().item()
+                self.model._centers.grad.norm(dim=1).mean()#.item()
                 if self.model._centers.grad is not None
                 else 0.0
             )
             radius_grad_mag = (
-                self.model._radii.grad.norm().mean().item()
+                self.model._radii.grad.norm().mean()#.item()
                 if self.model._radii.grad is not None
                 else 0.0
             )
@@ -230,16 +238,16 @@ class MorphItTrainer:
         """Print training progress."""
         total_time = time.time() - self.training_start_time
 
-        print(f"\n[Iter {iteration}] Time: {total_time:.4f}s")
-        print(f"Total Loss: {loss_info['total_loss']:.6f}")
+        print_string(f"\n[Iter {iteration}] Time: {total_time:.4f}s")
+        print_string(f"Total Loss: {loss_info['total_loss']:.6f}")
 
         # Print weighted losses
         for name, value in loss_info["weighted_losses"].items():
-            print(f"  {name}: {value:.6f}")
+            print_string(f"  {name}: {value:.6f}")
 
-        print(f"Spheres: {self.model.num_spheres}")
-        print(f"Pos Grad: {loss_info['grad_info']['position_grad_mag']:.6f}")
-        print(f"Rad Grad: {loss_info['grad_info']['radius_grad_mag']:.6f}")
+        print_string(f"Spheres: {self.model.num_spheres}")
+        print_string(f"Pos Grad: {loss_info['grad_info']['position_grad_mag']:.6f}")
+        print_string(f"Rad Grad: {loss_info['grad_info']['radius_grad_mag']:.6f}")
 
     def _check_convergence(self, iteration: int) -> bool:
         """Check if training has converged."""
@@ -255,10 +263,10 @@ class MorphItTrainer:
         )
 
         if analysis["converged"]:
-            print("\n=== Training Converged ===")
+            print_string("\n=== Training Converged ===")
             for key, value in analysis.items():
-                print(f"  {key}: {value}")
-            print(f"Stopping at iteration {iteration}")
+                print_string(f"  {key}: {value}")
+            print_string(f"Stopping at iteration {iteration}")
             return True
 
         return False
@@ -274,7 +282,7 @@ class MorphItTrainer:
 
     def _perform_density_control(self, iteration: int):
         """Perform density control operations."""
-        print(f"\n[Iter {iteration}] Performing adaptive density control")
+        print_string(f"\n[Iter {iteration}] Performing adaptive density control")
 
         # Perform density control
         spheres_added, spheres_removed = (
@@ -304,18 +312,19 @@ class MorphItTrainer:
         self.density_controller.prune_spheres()
 
         # Log final state
-        self.evolution_logger.log_spheres(self.model, self.current_iteration, "final")
-        self.evolution_logger.save_complete_evolution()
+        if self.config.training.logging_enabled:
+            self.evolution_logger.log_spheres(self.model, self.current_iteration, "final")
+            self.evolution_logger.save_complete_evolution()
 
         # Print summary
         self._print_training_summary()
 
     def _print_training_summary(self):
         """Print training summary."""
-        print(f"\n=== Training Complete ===")
-        print(f"Density control operations: {self.density_control_count}")
-        print(f"Final sphere count: {self.model.num_spheres}")
-        print("=" * 26)
+        print_string(f"\n=== Training Complete ===")
+        print_string(f"Density control operations: {self.density_control_count}")
+        print_string(f"Final sphere count: {self.model.num_spheres}")
+        print_string("=" * 26)
 
 
 def train_morphit(model, config: Optional[Dict[str, Any]] = None) -> ConvergenceTracker:
@@ -331,7 +340,7 @@ def train_morphit(model, config: Optional[Dict[str, Any]] = None) -> Convergence
     """
     # Update config if provided
     if config is not None:
-        from config import update_config_from_dict
+        from .config import update_config_from_dict
 
         model.config = update_config_from_dict(model.config, config)
 

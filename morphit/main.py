@@ -2,10 +2,10 @@
 Example script to run MorphIt
 """
 
-from config import get_config, update_config_from_dict
-from morphit import MorphIt
-from training import train_morphit
-from visualization import visualize_packing
+from .config import get_config, update_config_from_dict
+from .morphit import MorphIt
+from .training import train_morphit
+from .visualization import visualize_packing
 
 
 def main():

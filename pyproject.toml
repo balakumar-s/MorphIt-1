@@ -1,0 +1,111 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "Cython", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "morphit"
+version = "0.1.0"
+description = "Flexible spherical approximation of robot morphology"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Nataliya Nechyporenko"},
+    {name = "Yutong Zhang"},
+    {name = "Sean Campbell"},
+    {name = "Alessandro Roncone"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+requires-python = ">=3.8"
+dependencies = [
+    # Core dependencies
+    "numpy",
+    "torch",
+    "cython",
+    "pyvista",
+    "trimesh",
+    "matplotlib",
+    "pyyaml",
+    "warp-lang",
+
+    # Supporting libraries
+    "av",
+    "certifi",
+    "charset-normalizer",
+    "contourpy",
+    "cycler",
+    "filelock",
+    "fonttools",
+    "fsspec",
+    "idna",
+    "imageio",
+    "imageio-ffmpeg",
+    "jinja2",
+    "kiwisolver",
+    "markupsafe",
+    "mpmath",
+    "networkx",
+    "packaging",
+    "pillow",
+    "platformdirs",
+    "pooch",
+    "psutil",
+    "pyparsing",
+    "python-dateutil",
+    "requests",
+    "rtree",
+    "scooby",
+    "setuptools",
+    "six",
+    "sympy",
+    "triton",
+    "typing-extensions",
+    "urllib3",
+    "vtk",
+]
+
+[project.scripts]
+morphit-main = "morphit.main:main"
+morphit-panda = "morphit.morphit_panda:main"
+morphit-test = "morphit.test_morphit:main"
+morphit-visualize = "morphit.visualize_packing:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/MorphIt-1"
+Repository = "https://github.com/yourusername/MorphIt-1.git"
+Issues = "https://github.com/yourusername/MorphIt-1/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+morphit = ["*.so", "*.pyx", "*.cpp"]
+
+# Optional: Development dependencies
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "flake8",
+    "mypy",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.setuptools_scm]

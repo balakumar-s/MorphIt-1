@@ -12,15 +12,16 @@ def test_imports():
     print("Testing imports...")
 
     try:
-        from config import get_config, update_config_from_dict
+        from morphit.config import get_config, update_config_from_dict
 
         print("✓ config module imported successfully")
     except Exception as e:
         print(f"✗ config module import failed: {e}")
         return False
 
+
     try:
-        from morphit import MorphIt
+        from morphit.morphit import MorphIt
 
         print("✓ morphit module imported successfully")
     except Exception as e:
@@ -28,7 +29,7 @@ def test_imports():
         return False
 
     try:
-        from losses import MorphItLosses
+        from morphit.losses import MorphItLosses
 
         print("✓ losses module imported successfully")
     except Exception as e:
@@ -36,7 +37,7 @@ def test_imports():
         return False
 
     try:
-        from density_control import DensityController
+        from morphit.density_control import DensityController
 
         print("✓ density_control module imported successfully")
     except Exception as e:
@@ -44,7 +45,7 @@ def test_imports():
         return False
 
     try:
-        from training import MorphItTrainer, train_morphit
+        from morphit.training import MorphItTrainer, train_morphit
 
         print("✓ training module imported successfully")
     except Exception as e:
@@ -52,7 +53,7 @@ def test_imports():
         return False
 
     try:
-        from convergence_tracker import ConvergenceTracker
+        from morphit.convergence_tracker import ConvergenceTracker
 
         print("✓ convergence_tracker module imported successfully")
     except Exception as e:
@@ -60,7 +61,7 @@ def test_imports():
         return False
 
     try:
-        from logger import SphereEvolutionLogger
+        from morphit.logger import SphereEvolutionLogger
 
         print("✓ logger module imported successfully")
     except Exception as e:
@@ -68,7 +69,7 @@ def test_imports():
         return False
 
     try:
-        from visualization import visualize_packing
+        from morphit.visualization import visualize_packing
 
         print("✓ visualization module imported successfully")
     except Exception as e:
@@ -83,7 +84,7 @@ def test_configuration():
     print("\nTesting configuration...")
 
     try:
-        from config import get_config, update_config_from_dict
+        from morphit.config import get_config, update_config_from_dict
 
         # Test default config
         config = get_config()
@@ -121,8 +122,8 @@ def test_basic_model_creation():
     print("\nTesting model creation...")
 
     try:
-        from morphit import MorphIt
-        from config import get_config
+        from morphit.morphit import MorphIt
+        from morphit.config import get_config
 
         # Test with default config
         model = MorphIt()
@@ -162,9 +163,9 @@ def test_loss_computation():
     print("\nTesting loss computation...")
 
     try:
-        from morphit import MorphIt
-        from losses import MorphItLosses
-        from config import get_config
+        from morphit.morphit import MorphIt
+        from morphit.losses import MorphItLosses
+        from morphit.config import get_config
 
         # Create small model for testing
         config = get_config("MorphIt-B")
@@ -176,7 +177,9 @@ def test_loss_computation():
         losses = MorphItLosses(model)
 
         # Test individual loss functions
-        inside_dists, surface_dists, pairwise_dists = losses._compute_distance_matrices()
+        inside_dists, surface_dists, pairwise_dists = (
+            losses._compute_distance_matrices()
+        )
         coverage_loss = losses._compute_coverage_loss(inside_dists)
         overlap_penalty = losses._compute_overlap_penalty(pairwise_dists)
         boundary_penalty = losses._compute_boundary_penalty(surface_dists)
@@ -209,8 +212,8 @@ def test_minimal_training():
     print("\nTesting minimal training...")
 
     try:
-        from morphit import MorphIt
-        from config import get_config
+        from morphit.morphit import MorphIt
+        from morphit.config import get_config
 
         # Create minimal config for quick testing
         config = get_config("MorphIt-B")
@@ -247,33 +250,6 @@ def test_minimal_training():
         return False
 
 
-def test_file_structure():
-    """Test that required files exist."""
-    print("\nTesting file structure...")
-
-    required_files = [
-        "config.py",
-        "morphit.py",
-        "losses.py",
-        "density_control.py",
-        "training.py",
-        "convergence_tracker.py",
-        "logger.py",
-        "visualization.py",
-    ]
-
-    missing_files = []
-    for file in required_files:
-        if not Path(file).exists():
-            missing_files.append(file)
-
-    if missing_files:
-        print(f"✗ Missing required files: {missing_files}")
-        return False
-    else:
-        print("✓ All required files present")
-        return True
-
 
 def run_all_tests():
     """Run all tests."""
@@ -282,7 +258,6 @@ def run_all_tests():
     print("=" * 50)
 
     tests = [
-        ("File Structure", test_file_structure),
         ("Imports", test_imports),
         ("Configuration", test_configuration),
         ("Model Creation", test_basic_model_creation),

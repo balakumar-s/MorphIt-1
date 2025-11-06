@@ -1,5 +1,18 @@
 # MorphIt: Flexible Spherical Approximation of Robot Morphology
 
+### This is a fork with following changes:
+- warp-lang for mesh collision detection to simplify installation and also optionally parallelize on GPU.
+- pip installable by moving files under morphit folder and adding pyproject.toml
+- triangle-hash approach to collision detection might not work as it requires exact install paths to be set.
+- print only with debug, removes printing debug information by default. Can be enabled using a flag in print_helper.py.
+- faster training by removing cpu copies of training loss data.
+- add dataclass field to support python>3.11
+
+
+
+## Original Readme below:
+
+
 <img src="imgs/overview.png" alt="MorphIt Overview" width="500">
 
 MorphIt is a novel algorithm for approximating robot morphology using spherical primitives that balances geometric accuracy with computational efficiency. Unlike existing approaches that rely on either labor-intensive manual specification or inflexible computational methods, MorphIt implements an automatic gradient-based optimization framework with tunable parameters that provides explicit control over the physical fidelity versus computational cost tradeoff.

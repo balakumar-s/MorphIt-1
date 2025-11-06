@@ -12,9 +12,8 @@ from typing import Tuple, List, Dict, Optional, Any
 import json
 from pathlib import Path
 
-from config import MorphItConfig
-from inside_mesh import check_mesh_contains
-
+from morphit.config import MorphItConfig
+from morphit.print_helper import print_string
 
 class MorphIt(nn.Module):
     """
@@ -35,7 +34,7 @@ class MorphIt(nn.Module):
 
         # Set configuration
         if config is None:
-            from config import get_config
+            from .config import get_config
 
             config = get_config()
         self.config = config
@@ -53,14 +52,17 @@ class MorphIt(nn.Module):
 
         # Set device
         self.device = torch.device(self.config.model.device)
-        print(f"Using device: {self.device}")
+        print_string(f"Using device: {self.device}")
 
         # Store configuration for easy access
         self.num_spheres = self.config.model.num_spheres
         self.mesh_path = self.config.model.mesh_path
 
         # Load and store mesh
-        self.query_mesh = trimesh.load(self.mesh_path, force="mesh")
+        if self.config.model.mesh_instance is None:
+            self.query_mesh = trimesh.load(self.mesh_path, force="mesh")
+        else:
+            self.query_mesh = self.config.model.mesh_instance
         self.mesh_volume = self.query_mesh.volume
 
         # Initialize components
@@ -85,6 +87,7 @@ class MorphIt(nn.Module):
 
         # Print statistics
         self._print_initialization_stats(radii)
+
 
     def _sample_centers_inside_mesh(self, num_spheres: int) -> torch.Tensor:
         """Sample sphere centers inside the mesh volume."""
@@ -141,16 +144,16 @@ class MorphIt(nn.Module):
             max_radius = radii.max().item()
             mean_radius = radii.mean().item()
 
-            print(f"Initial radius distribution:")
-            print(f"  - Min: {min_radius:.4f}")
-            print(f"  - Mean: {mean_radius:.4f}")
-            print(f"  - Max: {max_radius:.4f}")
+            print_string(f"Initial radius distribution:")
+            print_string(f"  - Min: {min_radius:.4f}")
+            print_string(f"  - Mean: {mean_radius:.4f}")
+            print_string(f"  - Max: {max_radius:.4f}")
 
             # Verify volume preservation
             SPHERE_VOLUME_CONSTANT = 4 * np.pi / 3
             total_volume = (SPHERE_VOLUME_CONSTANT * (radii**3)).sum().item()
-            print(f"  - Target volume: {self.mesh_volume:.4f}")
-            print(f"  - Initial volume: {total_volume:.4f}")
+            print_string(f"  - Target volume: {self.mesh_volume:.4f}")
+            print_string(f"  - Initial volume: {total_volume:.4f}")
 
     def _initialize_sample_points(self):
         """Initialize sample points for loss computation."""
@@ -164,27 +167,8 @@ class MorphIt(nn.Module):
         """Pre-compute sample points inside mesh for coverage computation."""
         num_points = self.config.model.num_inside_samples
 
-        points = np.zeros((0, 3))
-        batch_size = min(num_points * 2, 10000)
-        mesh_bounds = self.query_mesh.bounds
-
-        while len(points) < num_points:
-            # Generate samples in batches
-            samples = np.random.uniform(
-                low=mesh_bounds[0], high=mesh_bounds[1], size=(batch_size, 3)
-            )
-
-            # Check which samples are inside the mesh
-            inside = check_mesh_contains(self.query_mesh, samples)
-            points = (
-                np.vstack([points, samples[inside]])
-                if len(points) > 0
-                else samples[inside]
-            )
-
-            if len(points) >= num_points:
-                points = points[:num_points]
-                break
+        points = trimesh.sample.volume_mesh(self.query_mesh, num_points)
+        points = points[:num_points]
 
         self.inside_samples = torch.tensor(
             points, dtype=torch.float32, device=self.device
@@ -256,7 +240,7 @@ class MorphIt(nn.Module):
         with open(filepath, "w") as f:
             json.dump(results, f, indent=4)
 
-        print(f"Results saved to: {filepath}")
+        print_string(f"Results saved to: {filepath}")
 
     def _config_to_dict(self) -> Dict:
         """Convert configuration to dictionary for serialization."""
@@ -311,9 +295,9 @@ class MorphIt(nn.Module):
             filename: Video filename
         """
         if enabled == False:
-            print(f"Disabled pyvista visualization.")
+            print_string(f"Disabled pyvista visualization.")
             return
-        from visualization import MorphItVisualizer
+        from .visualization import MorphItVisualizer
 
         self.visualizer = MorphItVisualizer(self, self.config.visualization)
         self.visualizer.pv_init(enabled, off_screen, save_video, filename)
@@ -365,11 +349,11 @@ class MorphIt(nn.Module):
         Returns:
             Convergence tracker with training history
         """
-        from training import train_morphit
+        from .training import train_morphit
 
         # Apply config updates if provided
         if config_updates is not None:
-            from config import update_config_from_dict
+            from .config import update_config_from_dict
 
             self.config = update_config_from_dict(self.config, config_updates)
 

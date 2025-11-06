@@ -1,11 +1,5 @@
 import numpy as np
-from triangle_hash import TriangleHash as _TriangleHash
 
-
-def check_mesh_contains(mesh, points, hash_resolution=512):
-    intersector = MeshIntersector(mesh, hash_resolution)
-    contains = intersector.query(points)
-    return contains
 
 
 class MeshIntersector:
@@ -27,7 +21,15 @@ class MeshIntersector:
         triangles2d = triangles[:, :, :2]
         self._tri_intersector2d = TriangleIntersector2d(triangles2d, resolution)
 
-    def query(self, points):
+    def query(self, points: np.ndarray) -> np.ndarray:
+        """Query if points are outside the mesh.
+
+        Args:
+            points: Points to query.
+
+        Returns:
+            Contains: Boolean array indicating if points are outside the mesh.
+        """
         # Rescale points
         points = self.rescale(points)
 
@@ -69,6 +71,7 @@ class MeshIntersector:
         if (contains1 != contains2).any():
             print("Warning: contains1 != contains2 for some points.")
         contains[mask] = contains1 & contains2
+        contains = ~contains
         return contains
 
     def compute_intersection_depth(self, points, triangles):
@@ -110,6 +113,7 @@ class MeshIntersector:
 
 class TriangleIntersector2d:
     def __init__(self, triangles, resolution=128):
+        from .triangle_hash import TriangleHash as _TriangleHash
         self.triangles = triangles
         self.tri_hash = _TriangleHash(triangles, resolution)
 

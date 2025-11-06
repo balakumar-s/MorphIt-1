@@ -96,9 +96,30 @@ class ConvergenceTracker:
             }
         )
 
+    def convert_to_floats(self, input_dict):
+        # iterate over all items in the metrics dictionary and convert to floats
+        output_dict = {}
+        for key, value in input_dict.items():
+            if isinstance(value, list):
+                if len(value) > 0:
+                    if isinstance(value[0], torch.Tensor):
+                        output_dict[key] = [x.item() for x in value]
+            elif isinstance(value, dict):
+                output_dict[key] = self.convert_to_floats(value)
+            else:
+                output_dict[key] = value
+        return output_dict
+
+
+
     def save(self):
         """Save metrics to JSON file"""
         filename = self.save_dir / f"{self.model_name}_training_log.json"
+
+        self.metrics = self.convert_to_floats(self.metrics)
+
+
+
         with open(filename, "w") as f:
             json.dump(self.metrics, f, indent=4, cls=NumpyEncoder)
         print(f"Saved training metrics to {filename}")

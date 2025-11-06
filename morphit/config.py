@@ -3,26 +3,27 @@ Configuration file for MorphIt sphere packing system.
 """
 
 import torch
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Any, Tuple
-
+import trimesh
 
 @dataclass
 class ModelConfig:
     """Model configuration parameters."""
 
     num_spheres: int = 15
-    mesh_path: str = "../mesh_models/fr3/collision/link0.obj"
+    mesh_path: str = "mesh_models/fr3/collision/link0.obj"
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    mesh_instance: trimesh.Trimesh = None
 
     # Sphere initialization parameters
     # Controls size variation (log-normal sigma)
-    initial_radius_variation: float = 0.4
+    initial_radius_variation: float = 0.5
     num_inside_samples: int = 5000  # Points inside mesh for coverage computation
     num_surface_samples: int = 1000  # Points on mesh surface for surface loss
 
     # Density control parameters
-    radius_threshold: float = 0.005  # Threshold for pruning small spheres
+    radius_threshold: float = 0.01 # Threshold for pruning small spheres
     coverage_threshold: float = (
         0.01  # Threshold for adding spheres to poor coverage areas
     )
@@ -33,7 +34,7 @@ class ModelConfig:
 class TrainingConfig:
     """Training configuration parameters."""
 
-    iterations: int = 50
+    iterations: int = 100
     verbose_frequency: int = 50
 
     # Looging the packing evolution
@@ -103,9 +104,9 @@ class VisualizationConfig:
 class MorphItConfig:
     """Main configuration class combining all sub-configurations."""
 
-    model: ModelConfig = ModelConfig()
-    training: TrainingConfig = TrainingConfig()
-    visualization: VisualizationConfig = VisualizationConfig()
+    model: ModelConfig = field(default_factory=ModelConfig)
+    training: TrainingConfig = field(default_factory=TrainingConfig)
+    visualization: VisualizationConfig = field(default_factory=VisualizationConfig)
 
     # Output configuration
     results_dir: str = "results/output"
@@ -189,8 +190,7 @@ def update_config_from_dict(
                 if hasattr(section_config, param):
                     setattr(section_config, param, value)
                 else:
-                    raise ValueError(
-                        f"Unknown parameter: {param} in section {section}")
+                    raise ValueError(f"Unknown parameter: {param} in section {section}")
             else:
                 raise ValueError(f"Unknown section: {section}")
         else:
